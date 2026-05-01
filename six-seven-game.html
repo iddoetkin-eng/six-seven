@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>SIX SEVEN — Brainrot Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bungee&family=Rubik:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --neon-lime: #c6ff00;
+    --neon-pink: #ff006e;
+    --neon-cyan: #00f5ff;
+    --neon-yellow: #ffe600;
+    --neon-purple: #b026ff;
+    --ink: #ffffff;
+    --muted: #777788;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Rubik', system-ui, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse at top left, rgba(255,0,110,0.15), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(0,245,255,0.12), transparent 50%),
+      radial-gradient(ellipse at center, rgba(176,38,255,0.08), transparent 60%),
+      var(--bg);
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' /></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: overlay;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(-4px, -2px) rotate(-0.3deg); }
+    20% { transform: translate(5px, 1px) rotate(0.2deg); }
+    30% { transform: translate(-3px, 3px) rotate(-0.2deg); }
+    40% { transform: translate(4px, -3px) rotate(0.4deg); }
+    50% { transform: translate(-5px, 2px) rotate(-0.4deg); }
+    60% { transform: translate(3px, -1px) rotate(0.2deg); }
+    70% { transform: translate(-2px, -3px) rotate(-0.1deg); }
+    80% { transform: translate(4px, 2px) rotate(0.3deg); }
+    90% { transform: translate(-2px, 1px) rotate(-0.1deg); }
+  }
+  body.shake { animation: shake 0.35s; }
+
+  .screen { position: fixed; inset: 0; display: none; }
+  .screen.active { display: flex; }
+
+  #menu {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: max(24px, env(safe-area-inset-top, 24px)) 24px max(24px, env(safe-area-inset-bottom, 24px));
+    text-align: center;
+    z-index: 10;
+    overflow-y: auto;
+  }
+
+  .title-stack {
+    margin-bottom: 32px;
+    position: relative;
+  }
+
+  .title {
+    font-family: 'Bungee', sans-serif;
+    font-size: clamp(48px, 14vw, 120px);
+    line-height: 0.85;
+    letter-spacing: -0.02em;
+    color: var(--neon-lime);
+    text-shadow:
+      4px 4px 0 var(--neon-pink),
+      8px 8px 0 var(--neon-purple),
+      0 0 40px rgba(198,255,0,0.4);
+    transform: rotate(-2deg);
+  }
+  .title.row2 {
+    color: var(--neon-pink);
+    text-shadow:
+      4px 4px 0 var(--neon-cyan),
+      8px 8px 0 var(--neon-purple),
+      0 0 40px rgba(255,0,110,0.4);
+    transform: rotate(2deg) translateY(-8px);
+  }
+
+  .tagline {
+    font-family: 'Anton', sans-serif;
+    font-size: clamp(14px, 3.5vw, 20px);
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    margin-top: 16px;
+    text-transform: uppercase;
+  }
+
+  .meme-info {
+    background: rgba(255,255,255,0.05);
+    border: 2px dashed rgba(255,230,0,0.3);
+    padding: 14px 18px;
+    border-radius: 12px;
+    max-width: 480px;
+    margin: 24px 0 32px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #aaa;
+  }
+  .meme-info b { color: var(--neon-yellow); }
+
+  .modes {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .mode-btn {
+    background: var(--bg);
+    border: 3px solid var(--ink);
+    color: var(--ink);
+    padding: 22px 24px;
+    font-family: 'Anton', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    text-align: right;
+    position: relative;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 6px 6px 0 var(--neon-lime);
+  }
+  .mode-btn:nth-child(2) { box-shadow: 6px 6px 0 var(--neon-pink); }
+  .mode-btn:nth-child(3) { box-shadow: 6px 6px 0 var(--neon-cyan); }
+  .mode-btn:active { transform: translate(3px, 3px); box-shadow: 3px 3px 0 var(--neon-lime); }
+  .mode-btn:nth-child(2):active { box-shadow: 3px 3px 0 var(--neon-pink); }
+  .mode-btn:nth-child(3):active { box-shadow: 3px 3px 0 var(--neon-cyan); }
+
+  .mode-btn .sub {
+    display: block;
+    font-family: 'Rubik', sans-serif;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0;
+    margin-top: 4px;
+    font-weight: 400;
+  }
+
+  .footer-tip {
+    margin-top: 24px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* === GAME === */
+  #game {
+    flex-direction: column;
+    background: #000;
+  }
+
+  .video-wrap {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    background: #000;
+  }
+
+  #video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+  }
+
+  #procCanvas { display: none; }
+
+  .player-overlay {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 16px;
+    pointer-events: none;
+  }
+
+  .player-overlay.solo { left: 0; right: 0; }
+  .player-overlay.p1 { left: 0; width: 50%; border-left: 2px dashed rgba(198,255,0,0.4); }
+  .player-overlay.p2 { right: 0; width: 50%; border-right: 2px dashed rgba(255,0,110,0.4); }
+
+  .player-label {
+    font-family: 'Anton', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.15em;
+    color: var(--ink);
+    background: rgba(0,0,0,0.6);
+    padding: 4px 10px;
+    align-self: flex-start;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .p1 .player-label { color: var(--neon-lime); border: 1px solid var(--neon-lime); }
+  .p2 .player-label { color: var(--neon-pink); border: 1px solid var(--neon-pink); }
+  .solo .player-label { color: var(--neon-cyan); border: 1px solid var(--neon-cyan); }
+
+  .counter {
+    font-family: 'Bungee', sans-serif;
+    font-size: clamp(80px, 22vw, 220px);
+    line-height: 1;
+    text-align: center;
+    text-shadow:
+      0 0 20px currentColor,
+      0 0 40px currentColor,
+      4px 4px 0 rgba(0,0,0,0.5);
+    align-self: center;
+    transition: transform 0.1s;
+  }
+  .p1 .counter { color: var(--neon-lime); }
+  .p2 .counter { color: var(--neon-pink); }
+  .solo .counter { color: var(--neon-cyan); }
+
+  .counter.pulse { transform: scale(1.25); }
+
+  .motion-bar {
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 8px;
+    align-self: stretch;
+  }
+  .motion-fill {
+    height: 100%;
+    width: 0%;
+    background: currentColor;
+    transition: width 0.05s linear;
+  }
+  .p1 .motion-fill { background: var(--neon-lime); }
+  .p2 .motion-fill { background: var(--neon-pink); }
+  .solo .motion-fill { background: var(--neon-cyan); }
+
+  .hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: max(12px, env(safe-area-inset-top, 12px)) 16px 12px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
+    z-index: 5;
+  }
+
+  .timer {
+    font-family: 'Bungee', sans-serif;
+    font-size: 32px;
+    color: var(--neon-yellow);
+    text-shadow: 0 0 15px rgba(255,230,0,0.5);
+  }
+  .timer.danger { color: var(--neon-pink); animation: pulse-danger 0.5s infinite; }
+  @keyframes pulse-danger {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+
+  .quit-btn {
+    background: rgba(0,0,0,0.6);
+    border: 2px solid var(--ink);
+    color: var(--ink);
+    padding: 6px 14px;
+    font-family: 'Anton', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  .countdown {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    background: rgba(0,0,0,0.7);
+    pointer-events: none;
+  }
+  .countdown-num {
+    font-family: 'Bungee', sans-serif;
+    font-size: clamp(120px, 30vw, 280px);
+    color: var(--neon-yellow);
+    text-shadow: 0 0 60px var(--neon-yellow);
+    animation: count-pop 1s ease-out;
+  }
+  @keyframes count-pop {
+    0% { transform: scale(0.3); opacity: 0; }
+    20% { transform: scale(1.3); opacity: 1; }
+    80% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+
+  .float-num {
+    position: absolute;
+    font-family: 'Bungee', sans-serif;
+    font-size: 48px;
+    pointer-events: none;
+    animation: float-up 0.8s ease-out forwards;
+    text-shadow: 0 0 20px currentColor;
+  }
+  @keyframes float-up {
+    0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+    20% { transform: translate(-50%, -20px) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%, -120px) scale(0.8); opacity: 0; }
+  }
+
+  /* === RESULTS === */
+  #results {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+    overflow-y: auto;
+  }
+
+  .result-title {
+    font-family: 'Bungee', sans-serif;
+    font-size: clamp(36px, 9vw, 72px);
+    color: var(--neon-yellow);
+    text-shadow: 4px 4px 0 var(--neon-pink), 0 0 40px rgba(255,230,0,0.4);
+    margin-bottom: 32px;
+    transform: rotate(-2deg);
+  }
+
+  .scores {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .score-card {
+    background: rgba(255,255,255,0.05);
+    border: 3px solid var(--ink);
+    padding: 24px 36px;
+    border-radius: 12px;
+    min-width: 160px;
+  }
+  .score-card.winner {
+    border-color: var(--neon-yellow);
+    box-shadow: 0 0 30px rgba(255,230,0,0.4);
+    transform: scale(1.05);
+  }
+  .score-card.p1 { border-color: var(--neon-lime); }
+  .score-card.p2 { border-color: var(--neon-pink); }
+  .score-card.solo { border-color: var(--neon-cyan); }
+
+  .score-label {
+    font-family: 'Anton', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .score-value {
+    font-family: 'Bungee', sans-serif;
+    font-size: 64px;
+    line-height: 1;
+  }
+  .score-card.p1 .score-value { color: var(--neon-lime); }
+  .score-card.p2 .score-value { color: var(--neon-pink); }
+  .score-card.solo .score-value { color: var(--neon-cyan); }
+  .score-card.winner .score-value { color: var(--neon-yellow); }
+
+  .winner-badge {
+    font-family: 'Anton', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    color: var(--neon-yellow);
+    margin-top: 8px;
+    text-transform: uppercase;
+  }
+
+  .result-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .result-actions .mode-btn {
+    font-size: 16px;
+    padding: 14px 24px;
+    text-align: center;
+    min-width: 140px;
+  }
+
+  .perm-error {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+    padding: 24px;
+  }
+  .perm-error.show { display: flex; }
+  .perm-box {
+    max-width: 420px;
+    text-align: center;
+    border: 2px solid var(--neon-pink);
+    padding: 24px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.6);
+  }
+  .perm-box h3 {
+    font-family: 'Anton', sans-serif;
+    color: var(--neon-pink);
+    font-size: 24px;
+    margin-bottom: 12px;
+    letter-spacing: 0.1em;
+  }
+  .perm-box p { color: #ccc; margin-bottom: 16px; line-height: 1.5; }
+  .perm-fix {
+    background: rgba(255,230,0,0.08);
+    border: 1px dashed rgba(255,230,0,0.4);
+    padding: 12px;
+    border-radius: 8px;
+    margin: 12px 0;
+    font-size: 13px;
+    color: #ffe;
+    text-align: right;
+    line-height: 1.6;
+  }
+  .perm-fix b { color: var(--neon-yellow); }
+  .perm-fix code {
+    background: rgba(0,0,0,0.5);
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: var(--neon-lime);
+    font-size: 12px;
+  }
+  .perm-details {
+    font-size: 11px;
+    color: #888;
+    margin-top: 8px;
+    font-family: monospace;
+    word-break: break-all;
+  }
+</style>
+</head>
+<body>
+
+<div class="screen active" id="menu">
+  <div class="title-stack">
+    <div class="title">SIX</div>
+    <div class="title row2">SEVEN</div>
+    <div class="tagline">Brainrot Tracker · 2025/26</div>
+  </div>
+
+  <div class="meme-info">
+    הרם את שתי הידיים מול המצלמה ועשה את התנועה המפורסמת:
+    כפות ידיים פתוחות זזות <b>מעלה ומטה לסירוגין</b> כאילו אתה שוקל שני תפוזים בלתי נראים.
+    כל תנועה מתחלפת = ניקוד.
+  </div>
+
+  <div class="modes">
+    <button class="mode-btn" data-mode="solo">
+      🎯 סולו · 30 שניות
+      <span class="sub">תרסק כמה שיותר 6-7 לפני שהזמן נגמר</span>
+    </button>
+    <button class="mode-btn" data-mode="versus">
+      🥊 דו-קרב · 30 שניות
+      <span class="sub">שני שחקנים, מסך מפוצל, מי ברסק יותר</span>
+    </button>
+    <button class="mode-btn" data-mode="endless">
+      ♾️ אינסופי · ללא טיימר
+      <span class="sub">תרגול חופשי, בלי לחץ</span>
+    </button>
+  </div>
+
+  <div class="footer-tip">דרוש: גישה למצלמה</div>
+</div>
+
+<div class="screen" id="game">
+  <div class="video-wrap" id="videoWrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="procCanvas"></canvas>
+
+    <div class="hud">
+      <button class="quit-btn" id="quitBtn">✕ יציאה</button>
+      <div class="timer" id="timer">00</div>
+      <div style="width: 70px;"></div>
+    </div>
+
+    <div id="overlayContainer"></div>
+
+    <div class="countdown" id="countdown" style="display:none;">
+      <div class="countdown-num" id="countdownNum">3</div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="results">
+  <div class="result-title">⏱ הזמן נגמר</div>
+  <div class="scores" id="scoresArea"></div>
+  <div class="result-actions">
+    <button class="mode-btn" id="playAgainBtn">🔁 עוד פעם</button>
+    <button class="mode-btn" id="backMenuBtn">📋 תפריט ראשי</button>
+  </div>
+</div>
+
+<div class="perm-error" id="permError">
+  <div class="perm-box">
+    <h3>🎥 בעיית גישה למצלמה</h3>
+    <p id="permReason">המשחק זקוק למצלמה כדי לזהות תנועות.</p>
+    <div class="perm-fix" id="permFix" style="display:none;"></div>
+    <div class="perm-details" id="permErrDetails"></div>
+    <button class="mode-btn" style="margin-top:12px;" onclick="location.reload()">נסה שוב</button>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const screens = { menu: $('menu'), game: $('game'), results: $('results') };
+
+let state = {
+  mode: null,
+  players: [],
+  running: false,
+  startTime: 0,
+  endTime: 0,
+  duration: 30,
+  rafId: null,
+};
+
+const video = $('video');
+const procCanvas = $('procCanvas');
+const procCtx = procCanvas.getContext('2d', { willReadFrequently: true });
+let prevFrame = null;
+const PROC_W = 240;
+const PROC_H = 180;
+
+const MOTION_THRESHOLD = 18;
+const MIN_TOTAL_MOTION = 80;
+const DOMINANCE_RATIO = 1.25;
+const COOLDOWN_MS = 180;
+const NO_MOTION_RESET_MS = 600;
+
+document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
+  btn.addEventListener('click', () => startGame(btn.dataset.mode));
+});
+
+$('quitBtn').addEventListener('click', () => { stopGame(); showScreen('menu'); });
+$('playAgainBtn').addEventListener('click', () => startGame(state.mode));
+$('backMenuBtn').addEventListener('click', () => { stopGame(); showScreen('menu'); });
+
+function showScreen(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+}
+
+async function startGame(mode) {
+  state.mode = mode;
+  state.duration = mode === 'endless' ? Infinity : 30;
+
+  procCanvas.width = PROC_W;
+  procCanvas.height = PROC_H;
+
+  if (mode === 'versus') {
+    state.players = [
+      makePlayer(0, 'p1', 'שחקן 1',
+        { x: 0,        w: PROC_W * 0.25 },
+        { x: PROC_W*0.25, w: PROC_W * 0.25 }
+      ),
+      makePlayer(1, 'p2', 'שחקן 2',
+        { x: PROC_W*0.5,  w: PROC_W * 0.25 },
+        { x: PROC_W*0.75, w: PROC_W * 0.25 }
+      ),
+    ];
+  } else {
+    state.players = [
+      makePlayer(0, 'solo', 'YOU',
+        { x: 0,         w: PROC_W * 0.5 },
+        { x: PROC_W*0.5, w: PROC_W * 0.5 }
+      ),
+    ];
+  }
+
+  try { await ensureCamera(); }
+  catch (err) { console.error('Camera error:', err); showPermError(err); return; }
+
+  buildOverlays();
+  showScreen('game');
+  await runCountdown();
+
+  state.running = true;
+  state.startTime = performance.now();
+  state.endTime = state.duration === Infinity ? Infinity : state.startTime + state.duration * 1000;
+  prevFrame = null;
+  loop();
+}
+
+function makePlayer(id, cssClass, label, leftZone, rightZone) {
+  return {
+    id, cssClass, label,
+    count: 0,
+    lastDominant: null,
+    lastDominantAt: 0,
+    cooldownUntil: 0,
+    leftZone, rightZone,
+    counterEl: null, motionFillEl: null, overlayEl: null,
+  };
+}
+
+function buildOverlays() {
+  const container = $('overlayContainer');
+  container.innerHTML = '';
+
+  state.players.forEach(p => {
+    const overlay = document.createElement('div');
+    overlay.className = 'player-overlay ' + p.cssClass;
+    overlay.innerHTML = `
+      <div class="player-label">${p.label}</div>
+      <div>
+        <div class="counter" id="counter-${p.id}">0</div>
+        <div class="motion-bar"><div class="motion-fill" id="motion-${p.id}"></div></div>
+      </div>
+    `;
+    container.appendChild(overlay);
+    p.overlayEl = overlay;
+    p.counterEl = $(`counter-${p.id}`);
+    p.motionFillEl = $(`motion-${p.id}`);
+  });
+}
+
+let cameraStream = null;
+async function ensureCamera() {
+  if (cameraStream && video.srcObject) return;
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    const e = new Error('getUserMedia API not available');
+    e.name = 'NotSupportedError';
+    throw e;
+  }
+
+  cameraStream = await navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: 'user',
+      width: { ideal: 640 },
+      height: { ideal: 480 },
+    },
+    audio: false,
+  });
+  video.srcObject = cameraStream;
+  await new Promise(resolve => {
+    if (video.readyState >= 2) return resolve();
+    video.onloadedmetadata = () => resolve();
+  });
+  await video.play();
+}
+
+function showPermError(err) {
+  const reasonEl = $('permReason');
+  const fixEl = $('permFix');
+  const detailsEl = $('permErrDetails');
+
+  const protocol = location.protocol;
+  const isFile = protocol === 'file:';
+  const isInsecure = protocol === 'http:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
+  const apiMissing = !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia;
+
+  let reason = '', fix = '';
+
+  if (isFile) {
+    reason = 'הקובץ נפתח כ-file:// — דפדפנים חוסמים מצלמה מקבצים מקומיים.';
+    fix = '<b>פתרון:</b><br>העלה ל-GitHub Pages או הרץ <code>python -m http.server</code> ב-localhost.';
+  } else if (isInsecure) {
+    reason = 'הדף ב-HTTP לא מאובטח. דרוש HTTPS.';
+    fix = '<b>פתרון:</b> השתמש ב-HTTPS או localhost.';
+  } else if (apiMissing) {
+    reason = 'הדפדפן לא תומך ב-getUserMedia.';
+    fix = '<b>פתרון:</b> פתח ישירות בכרום/ספארי.';
+  } else if (err && err.name === 'NotAllowedError') {
+    reason = 'דחית גישה למצלמה או שהיא חסומה.';
+    fix = '<b>פתרון:</b> אייקון המנעול ליד ה-URL → אפשר מצלמה → רענן.';
+  } else if (err && err.name === 'NotFoundError') {
+    reason = 'לא נמצאה מצלמה במכשיר.';
+    fix = '<b>פתרון:</b> ודא שיש מצלמה זמינה.';
+  } else if (err && err.name === 'NotReadableError') {
+    reason = 'המצלמה תפוסה ע"י אפליקציה אחרת.';
+    fix = '<b>פתרון:</b> סגור Zoom/Teams וכו\' ונסה שוב.';
+  } else {
+    reason = 'שגיאה לא מזוהה.';
+    fix = '<b>פתרון:</b> רענן או פתח דרך HTTPS.';
+  }
+
+  reasonEl.textContent = reason;
+  fixEl.innerHTML = fix;
+  fixEl.style.display = 'block';
+  detailsEl.textContent = `${protocol} | ${err && err.name ? err.name : 'unknown'}`;
+  $('permError').classList.add('show');
+}
+
+function runCountdown() {
+  return new Promise(resolve => {
+    const countEl = $('countdown');
+    const numEl = $('countdownNum');
+    countEl.style.display = 'flex';
+    let n = 3;
+    numEl.textContent = n;
+
+    const tick = () => {
+      n--;
+      if (n <= 0) {
+        numEl.textContent = 'GO!';
+        numEl.style.color = 'var(--neon-lime)';
+        numEl.style.animation = 'none';
+        void numEl.offsetWidth;
+        numEl.style.animation = '';
+        setTimeout(() => {
+          countEl.style.display = 'none';
+          numEl.style.color = '';
+          resolve();
+        }, 700);
+      } else {
+        numEl.textContent = n;
+        numEl.style.animation = 'none';
+        void numEl.offsetWidth;
+        numEl.style.animation = '';
+        setTimeout(tick, 1000);
+      }
+    };
+    setTimeout(tick, 1000);
+  });
+}
+
+function loop() {
+  if (!state.running) return;
+  state.rafId = requestAnimationFrame(loop);
+
+  const now = performance.now();
+
+  if (state.duration !== Infinity) {
+    const remaining = Math.max(0, Math.ceil((state.endTime - now) / 1000));
+    $('timer').textContent = remaining.toString().padStart(2, '0');
+    $('timer').classList.toggle('danger', remaining <= 5 && remaining > 0);
+    if (now >= state.endTime) { finishGame(); return; }
+  } else {
+    const elapsed = Math.floor((now - state.startTime) / 1000);
+    $('timer').textContent = elapsed.toString().padStart(2, '0');
+  }
+
+  if (video.readyState >= 2) {
+    procCtx.save();
+    procCtx.scale(-1, 1);
+    procCtx.drawImage(video, -PROC_W, 0, PROC_W, PROC_H);
+    procCtx.restore();
+
+    const current = procCtx.getImageData(0, 0, PROC_W, PROC_H);
+    if (prevFrame) processMotion(current, prevFrame, now);
+    prevFrame = current;
+  }
+}
+
+function zoneMotion(current, prev, zone) {
+  const data = current.data;
+  const pdata = prev.data;
+  const xStart = Math.floor(zone.x);
+  const xEnd = Math.floor(zone.x + zone.w);
+  let motionPixels = 0;
+  const yEnd = Math.floor(PROC_H * 0.85);
+
+  for (let y = 0; y < yEnd; y += 2) {
+    for (let x = xStart; x < xEnd; x += 2) {
+      const i = (y * PROC_W + x) * 4;
+      const diff = Math.abs(data[i+1] - pdata[i+1]);
+      if (diff > MOTION_THRESHOLD) motionPixels++;
+    }
+  }
+  return motionPixels;
+}
+
+function processMotion(current, prev, now) {
+  state.players.forEach(p => {
+    const lm = zoneMotion(current, prev, p.leftZone);
+    const rm = zoneMotion(current, prev, p.rightZone);
+    const total = lm + rm;
+
+    const intensity = Math.min(100, (total / 400) * 100);
+    p.motionFillEl.style.width = intensity + '%';
+
+    if (now < p.cooldownUntil) return;
+
+    if (total < MIN_TOTAL_MOTION) {
+      if (now - p.lastDominantAt > NO_MOTION_RESET_MS) p.lastDominant = null;
+      return;
+    }
+
+    let dominant = null;
+    if (lm > rm * DOMINANCE_RATIO) dominant = 'left';
+    else if (rm > lm * DOMINANCE_RATIO) dominant = 'right';
+
+    if (dominant) {
+      if (p.lastDominant && dominant !== p.lastDominant) scorePoint(p);
+      p.lastDominant = dominant;
+      p.lastDominantAt = now;
+    }
+  });
+}
+
+function scorePoint(p) {
+  p.count++;
+  p.cooldownUntil = performance.now() + COOLDOWN_MS;
+  p.counterEl.textContent = p.count;
+
+  p.counterEl.classList.add('pulse');
+  setTimeout(() => p.counterEl.classList.remove('pulse'), 100);
+
+  document.body.classList.remove('shake');
+  void document.body.offsetWidth;
+  document.body.classList.add('shake');
+
+  spawnFloatNum(p);
+  beepSound(p.id);
+}
+
+function spawnFloatNum(p) {
+  const overlay = p.overlayEl;
+  const rect = overlay.getBoundingClientRect();
+  const float = document.createElement('div');
+  float.className = 'float-num';
+  float.textContent = Math.random() > 0.5 ? '+6' : '+7';
+  float.style.color = getComputedStyle(p.counterEl).color;
+  float.style.left = (rect.left + rect.width / 2) + 'px';
+  float.style.top = (rect.top + rect.height / 2) + 'px';
+  document.body.appendChild(float);
+  setTimeout(() => float.remove(), 800);
+}
+
+let audioCtx = null;
+function beepSound(playerId) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const t = audioCtx.currentTime;
+    const baseFreq = playerId === 0 ? 440 : 330;
+
+    [0, 0.08].forEach((delay, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = baseFreq * (i === 0 ? 1 : 1.18);
+      gain.gain.setValueAtTime(0.0001, t + delay);
+      gain.gain.exponentialRampToValueAtTime(0.12, t + delay + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + delay + 0.07);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t + delay);
+      osc.stop(t + delay + 0.08);
+    });
+  } catch(e) {}
+}
+
+function finishGame() {
+  state.running = false;
+  cancelAnimationFrame(state.rafId);
+  showResults();
+}
+
+function stopGame() {
+  state.running = false;
+  cancelAnimationFrame(state.rafId);
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+    video.srcObject = null;
+  }
+}
+
+function showResults() {
+  const area = $('scoresArea');
+  area.innerHTML = '';
+
+  let winnerId = null;
+  if (state.mode === 'versus') {
+    if (state.players[0].count > state.players[1].count) winnerId = 0;
+    else if (state.players[1].count > state.players[0].count) winnerId = 1;
+  }
+
+  state.players.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'score-card ' + p.cssClass;
+    if (p.id === winnerId) card.classList.add('winner');
+    card.innerHTML = `
+      <div class="score-label">${p.label}</div>
+      <div class="score-value">${p.count}</div>
+      ${p.id === winnerId ? '<div class="winner-badge">🏆 WINNER</div>' : ''}
+      ${state.mode === 'versus' && winnerId === null ? '<div class="winner-badge">🤝 TIE</div>' : ''}
+    `;
+    area.appendChild(card);
+  });
+
+  if (state.mode !== 'versus') {
+    const c = state.players[0].count;
+    let msg = '';
+    if (c === 0) msg = '😴 לא רצה? נסה שוב';
+    else if (c < 10) msg = '😐 מתחיל';
+    else if (c < 25) msg = '🔥 יפה!';
+    else if (c < 50) msg = '💀 מטורף';
+    else msg = '🤯 BRAINROT MASTER';
+
+    const msgEl = document.createElement('div');
+    msgEl.style.cssText = 'font-family:Anton,sans-serif;font-size:24px;letter-spacing:0.1em;color:var(--neon-yellow);margin-top:-16px;margin-bottom:16px;';
+    msgEl.textContent = msg;
+    area.parentElement.insertBefore(msgEl, area.nextSibling);
+    setTimeout(() => msgEl.remove(), 8000);
+  }
+
+  showScreen('results');
+}
+
+window.addEventListener('beforeunload', stopGame);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && state.running) {
+    state.running = false;
+    cancelAnimationFrame(state.rafId);
+  }
+});
+</script>
+</body>
+</html>
